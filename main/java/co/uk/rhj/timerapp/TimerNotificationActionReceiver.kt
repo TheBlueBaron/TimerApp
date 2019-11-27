@@ -1,0 +1,46 @@
+package co.uk.rhj.timerapp
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import co.uk.rhj.timerapp.util.NotificationUtil
+import co.uk.rhj.timerapp.util.PrefUtil
+
+class TimerNotificationActionReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        when(intent.action){
+            AppConstants.ACTION_STOP -> {
+                TimerActivity.removeAlarm(context)
+                PrefUtil.setTimerState(TimerActivity.TimerState.STOPPED, context)
+                NotificationUtil.hideTimerNotification(context)
+            }
+            AppConstants.ACTION_PAUSE -> {
+                var secondsRemaining = PrefUtil.getSecondsRemaining(context)
+                val alarmSetTime = PrefUtil.getAlarmSetTime(context)
+                val nowSeconds = TimerActivity.nowSeconds
+
+                secondsRemaining -= nowSeconds - alarmSetTime
+                PrefUtil.setSecondsRemaining(secondsRemaining, context)
+
+                TimerActivity.removeAlarm(context)
+                PrefUtil.setTimerState(TimerActivity.TimerState.PAUSED, context)
+                NotificationUtil.showTimerPaused(context)
+            }
+            AppConstants.ACTION_RESUME -> {
+                val secondsRemaining = PrefUtil.getSecondsRemaining(context)
+                val wakeUpTime = TimerActivity.setAlarm(context, TimerActivity.nowSeconds, secondsRemaining)
+                PrefUtil.setTimerState(TimerActivity.TimerState.RUNNING,context)
+                NotificationUtil.showTimerRunning(context, wakeUpTime)
+            }
+            AppConstants.ACTION_START -> {
+                val minutesRemaining = PrefUtil.getTimerLength(context)
+                val secondsRemaining = minutesRemaining * 60L
+                val wakeUpTime = TimerActivity.setAlarm(context, TimerActivity.nowSeconds, secondsRemaining)
+                PrefUtil.setTimerState(TimerActivity.TimerState.RUNNING,context)
+                PrefUtil.setSecondsRemaining(secondsRemaining, context)
+                NotificationUtil.showTimerRunning(context, wakeUpTime)
+            }
+        }
+    }
+}
